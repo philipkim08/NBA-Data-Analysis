@@ -1,0 +1,1 @@
+project for the NBA, looking at different models (Bradley Terry, ELO, Monte Carlo Simulation, Pythagorean win %) to simulate the 2015-2016 NBA season. I have included a document outlining the process that includes the visualizations, as well as the code Rmd as well. 
