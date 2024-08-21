@@ -1,0 +1,704 @@
+---
+title: "STAT 1341 Final Project"
+author: "Philip Kim"
+date: "12/5/2023"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+load in libraries
+```{r}
+library(Rmisc)
+library(ggplot2)
+library(ggpubr)
+library(scales)
+library(knitr)
+library(dplyr)
+
+```
+
+read in data frames
+```{r}
+
+nba <- read.table('nba_data.csv', header = T, sep = ",")
+scores <- nba %>%
+  filter(season == 2015 & game_type == "r")
+
+elos <- read.table('nba_initial_elos.csv', header = T, sep = ",") %>%
+  filter(!is.na(conference))
+  
+season_stats <- read.table('2015_2016_season_stats.csv', header = T, sep = ",") %>%
+  rename("Off_eFG" = "eFG.", "Off_TOV" = "TOV.", "Off_Reb" = "ORB.", "Off_FTR" = "FT.FGA",
+         "Opp_eFG" = "eFG..1", "Opp_TOV" = "TOV..1", "Def_Reb" = "DRB.", "Opp_FTR" = "FT.FGA.1",
+         "Wins" = "W", "three_rate" = "X3PAr", "Losses" = "L") %>%
+  select(Team, Age, Wins, Losses, Off_eFG, Off_TOV, Off_Reb, Off_FTR, Opp_eFG, Opp_TOV, Def_Reb, Opp_FTR,
+         three_rate)
+
+points_scored <- read.table('points_scored.csv', header = T, sep = ",")
+points_against <- read.table('scored_against.csv', header = T, sep = ",")
+
+```
+
+Offensive Four Factors Scatterplots
+```{r}
+off_four_factors <- function(factor){
+  season_stats %>%
+    ggplot(aes(x = factor, y = Wins)) + 
+    geom_point() +
+    geom_smooth(method = 'lm', se = F) +
+    stat_cor(method = "pearson")
+}
+
+Off_eFG_plot <- off_four_factors(season_stats$Off_eFG) +
+  labs(title = 'Offensive Effective FG% Against Wins', x = "Offensive eFG%")
+
+Off_TOV_plot <- off_four_factors(season_stats$Off_TOV) +
+  labs(title = 'Offensive TOV% Against Wins', x = "Offensive TOV%")
+
+Off_Reb_plot <- off_four_factors(season_stats$Off_Reb) +
+  labs(title = 'Offensive Reb% Against Wins', x = "Offensive Reb%")
+
+Off_FTR_plot <- off_four_factors(season_stats$Off_FTR) +
+  labs(title = 'Offensive FTR% Against Wins', x = "Offensive FTR%")
+
+
+multiplot(Off_eFG_plot, Off_TOV_plot, Off_Reb_plot, Off_FTR_plot, cols = 2)
+
+summary(season_stats$Off_eFG)
+summary(season_stats$Off_TOV)
+summary(season_stats$Off_Reb)
+summary(season_stats$Off_FTR)
+```
+Offensive Four Factors Histograms
+```{r}
+off_four_factors2 <- function(factor){
+  season_stats %>%
+    ggplot(aes(x = factor)) + 
+    geom_histogram(bins = 10, fill = 'coral', color = 'black')
+}
+
+Off_eFG_plot2 <- off_four_factors2(season_stats$Off_eFG) +
+  labs(title = 'Offensive Effective FG%', x = "Offensive eFG%") +
+  geom_vline(xintercept = mean(season_stats$Off_eFG), color = 'blue')
+
+Off_TOV_plot2 <- off_four_factors2(season_stats$Off_TOV) +
+  labs(title = 'Offensive TOV%', x = "Offensive TOV%") +
+  geom_vline(xintercept = mean(season_stats$Off_TOV), color = 'blue')
+
+Off_Reb_plot2 <- off_four_factors2(season_stats$Off_Reb) +
+  labs(title = 'Offensive Reb%', x = "Offensive Reb%") +
+  geom_vline(xintercept = mean(season_stats$Off_Reb), color = 'blue')
+
+Off_FTR_plot2 <- off_four_factors2(season_stats$Off_FTR) +
+  labs(title = 'Offensive FTR%', x = "Offensive FTR%") +
+  geom_vline(xintercept = mean(season_stats$Off_FTR), color = 'blue')
+
+
+multiplot(Off_eFG_plot2, Off_TOV_plot2, Off_Reb_plot2, Off_FTR_plot2, cols = 2)
+
+
+summary(season_stats$Off_eFG)
+summary(season_stats$Off_TOV)
+summary(season_stats$Off_Reb)
+summary(season_stats$Off_FTR)
+
+cat(c("Mean:", mean(season_stats$Off_eFG), ",", "Std Dev:", round(sd(season_stats$Off_eFG),4)))
+cat(c("Mean:", mean(season_stats$Off_TOV), ",", "Std Dev:", round(sd(season_stats$Off_TOV),4)))
+cat(c("Mean:", round(mean(season_stats$Off_Reb),3), ",", "Std Dev:", round(sd(season_stats$Off_Reb),3)))
+cat(c("Mean:", mean(season_stats$Off_FTR), ",", "Std Dev:", round(sd(season_stats$Off_FTR),4)))
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Defensive Four Factors Histograms
+```{r}
+def_four_factors2 <- function(factor){
+  season_stats %>%
+    ggplot(aes(x = factor)) + 
+    geom_histogram(bins = 10, fill = 'light blue', color = 'black')
+}
+
+Opp_eFG_plot2 <- def_four_factors2(season_stats$Opp_eFG) +
+  labs(title = 'Opponent Effective FG%', x = "Opponent eFG%") +
+  geom_vline(xintercept = mean(season_stats$Opp_eFG), color = 'red')
+
+Opp_TOV_plot2 <- def_four_factors2(season_stats$Opp_TOV) +
+  labs(title = 'Opponent TOV%', x = "Opponent TOV%") +
+  geom_vline(xintercept = mean(season_stats$Opp_TOV), color = 'red')
+
+Def_Reb_plot2 <- def_four_factors2(season_stats$Def_Reb) +
+  labs(title = 'Defensive Reb%', x = "Defensive Reb%") +
+  geom_vline(xintercept = mean(season_stats$Def_Reb), color = 'red')
+
+Opp_FTR_plot2 <- def_four_factors2(season_stats$Opp_FTR) +
+  labs(title = 'Opponent FTR%', x = "Opponent FTR%") +
+  geom_vline(xintercept = mean(season_stats$Opp_FTR), color = 'red')
+
+
+multiplot(Opp_eFG_plot2, Opp_TOV_plot2, Def_Reb_plot2, Opp_FTR_plot2, cols = 2)
+
+summary(season_stats$Opp_eFG)
+summary(season_stats$Def_Reb)
+summary(season_stats$Opp_TOV)
+summary(season_stats$Opp_FTR)
+
+cat(c("Mean:", round(mean(season_stats$Opp_eFG),4), ",", "Std Dev:", round(sd(season_stats$Opp_eFG),4)))
+cat(c("Mean:", round(mean(season_stats$Def_Reb),4), ",", "Std Dev:", round(sd(season_stats$Def_Reb),4)))
+cat(c("Mean:", round(mean(season_stats$Opp_TOV),3), ",", "Std Dev:", round(sd(season_stats$Opp_TOV),3)))
+cat(c("Mean:", round(mean(season_stats$Opp_FTR),4), ",", "Std Dev:", round(sd(season_stats$Opp_FTR),4)))
+
+```
+
+Defensive Four Factors Scatterplots
+```{r}
+def_four_factors <- function(factor){
+  season_stats %>%
+    ggplot(aes(x = factor, y = Wins)) + 
+    geom_point() +
+    geom_smooth(method = 'lm', se = F, color = 'red') +
+    stat_cor(method = "pearson")
+}
+
+Opp_eFG_plot <- def_four_factors(season_stats$Opp_eFG) +
+  labs(title = 'Opponent Effective FG% Against Wins', x = "Opponent eFG%")
+
+Opp_TOV_plot <- def_four_factors(season_stats$Opp_TOV) +
+  labs(title = 'Opponent TOV% Against Wins', x = "Opponent TOV%")
+
+Def_Reb_plot <- def_four_factors(season_stats$Def_Reb) +
+  labs(title = 'Defensive Reb% Against Wins', x = "Defensive Reb%")
+
+Opp_FTR_plot <- def_four_factors(season_stats$Opp_FTR) +
+  labs(title = 'Opponent FTR% Against Wins', x = "Opponent FTR%")
+
+
+multiplot(Opp_eFG_plot, Opp_TOV_plot, Def_Reb_plot, Opp_FTR_plot, cols = 2)
+```
+
+
+
+```{r}
+misc_plots <- function(statistic){
+  season_stats %>%
+    ggplot(aes(x = statistic, y = Wins)) + 
+    geom_point() +
+    geom_smooth(method = 'lm', se = F, color = 'orange') +
+    stat_cor(method = "pearson")
+}
+
+
+three_rate_plot <- misc_plots(season_stats$three_rate) +
+  labs(title = "Three Point Rate Against Wins", x = "Three Point Attempt Percentage")
+
+age_plot <- misc_plots(season_stats$Age) +
+  labs(title = "Average Age Against Wins", x = "Average Age")
+
+multiplot(three_rate_plot, age_plot, cols = 2)
+
+
+```
+
+
+
+Scoring Distribution
+```{r}
+combined_score <- data.frame(Combined_Points = c(scores$home_score, scores$away_score))
+
+combined_plot <- combined_score %>%
+  ggplot(aes(x = Combined_Points)) +
+  geom_histogram(color = 'black', fill = 'pink', bins = 30) +
+  geom_vline(xintercept = mean(combined_score$Combined_Points), color = 'blue', linewidth = 1.5) +
+  labs(title = "Combined Scoring Distribution", x = "Points Scored in One Game") +
+  geom_vline(xintercept = mean(scores$home_score), color = "light blue", linewidth = 1.5) +
+  geom_vline(xintercept = mean(scores$away_score), color = "orange", linewidth = 1.5)
+
+home_score_plot <- scores %>%
+  ggplot(aes(x = home_score)) +
+  geom_histogram(color = 'black', fill = 'light blue', bins = 30) +
+  geom_vline(xintercept = mean(scores$home_score), color = 'blue', linewidth = 1.5) +
+  labs(title = "Scoring Distribution from Home Teams", x = "Points Scored in One Game")
+
+away_score_plot <- scores %>%
+  ggplot(aes(x = away_score)) +
+  geom_histogram(color = 'black', fill = 'orange', bins = 30) +
+  geom_vline(xintercept = mean(scores$away_score), color = 'blue', linewidth = 1.5) +
+  labs(title = "Scoring Distribution from Away Teams", x = "Points Scored in One Game")
+
+multiplot(combined_plot, home_score_plot, away_score_plot, cols = 3)
+
+
+cat(c("Mean:", round(mean(combined_score$Combined_Points),2), ",", "Std Dev:",
+      round(sd(combined_score$Combined_Points),2)))
+
+cat(c("Mean:", round(mean(scores$home_score),2), ",", "Std Dev:",
+      round(sd(scores$home_score),2)))
+
+cat(c("Mean:", round(mean(scores$away_score),2), ",", "Std Dev:",
+      round(sd(scores$away_score),2)))
+
+
+scores %>%
+  ggplot(aes(x = home_score, y = away_score)) +
+  geom_point(color = 'blue', alpha = 0.7) +
+  geom_smooth(method = 'lm', color = 'red') +
+  stat_cor(method = 'pearson') +
+  labs(title = 'Home vs Away Scoring', x = 'Home Score', y = 'Away Score')
+
+  
+```
+
+Pythagorean Win Percentage (skip for now)
+```{r}
+
+season_stats$points_scored <- points_scored$PTS
+season_stats$points_against <- points_against$PTS
+
+pyth_model = lm(log(Wins/Losses) ~ 0 + log(points_scored/points_against), data = season_stats)
+summary(pyth_model)
+
+season_stats$win_percent = season_stats$Wins / (season_stats$Wins + season_stats$Losses)
+season_stats$pyth_wpct = season_stats$points_scored^coef(pyth_model) / (season_stats$points_scored^coef(pyth_model) + season_stats$points_against^coef(pyth_model))
+
+season_stats$error = season_stats$win_percent - season_stats$pyth_wpct
+
+season_stats %>%
+  ggplot(aes(x = win_percent, y = pyth_wpct)) +
+  geom_point(color = 'purple') +
+  stat_cor(method = 'pearson') +
+  labs(title = 'Actual vs Pythagorean Win %', x = "Actual Win %",
+       y = 'Pythagorean Win %')
+
+kable(season_stats[, c(1,16,17)], col.names = c("Team", "Actual", "Pyth"), digits = 3, format = "simple")
+
+kable(list(season_stats[1:15, c(1,16,17,18)], season_stats[16:30, c(1,16,17,18)]), col.names = c("Team", "Actual", "Pyth", "Error"), digits = 3, align = 'lccc')
+
+mean(abs(season_stats$error))
+
+```
+
+
+Bradley Terry
+```{r}
+nba_data = as.data.frame(matrix(nrow = 1230, ncol = 32))
+teams = sort(unique(scocredit %>%
+  filter(distance_from_home < 500) %>%
+  ggplot(aes(x = distance_from_home)) +
+  geom_histogram()res$home_team))
+colnames(nba_data) = c("MoV", "Location", teams)
+nba_data[is.na(nba_data)] = 0
+
+for (i in 1:length(teams)) {
+    home = as.integer(scores$home_team == teams[i])      
+    away = -1*as.integer(scores$away_team == teams[i])   
+    team_locations = home + away                             
+    nba_data[, i+2] = team_locations  
+}
+
+nba_data$MoV = scores$home_score - scores$away_score
+nba_data$Location = scores$location
+
+brad_terry_model = lm(MoV ~ 0 + ., data = nba_data)
+summary(brad_terry_model)
+
+coefficients = coef(brad_terry_model, complete = TRUE)
+coefficients[length(coefficients)] = 0
+adjustment = -1 * sum(coefficients[2:length(coefficients)]) / (length(coefficients) - 1)
+ratings = c(coefficients[1], coefficients[2:length(coefficients)] + adjustment)
+print(ratings)
+
+kable(list(ratings[1:16], ratings[17:31]), col.names = "Bradley-Terry Rating")
+
+ratings_df <- as.data.frame(ratings) %>%
+  arrange(ratings)
+
+
+
+```
+
+
+
+
+Elo Ratings
+
+```{r}
+
+scores <- read.table('nba_data.csv', header = T, sep = ",")
+
+# Specify season to simulate
+simulated_season = 2015
+
+# Read in initial Elo rating, conference, and division
+team_info = read.table("nba_initial_elos.csv", header = TRUE, sep = ",")
+
+# Obtain list of unique conference names and unique division names
+conferences = na.omit(unique(team_info$conference))
+divisions = na.omit(unique(team_info$division))
+
+# Create list of games that occurred prior to season being simulated
+pre_season = scores[which(scores$season < simulated_season & scores$season >= 1946),]
+
+# Create list of regular season games for season being simulated
+season_schedule = scores[which(scores$season == simulated_season & (scores$game_type == "r" | scores$game_type == "np")),]
+
+
+
+
+
+hfa = 77.47
+weight = 8.5
+
+# Identify if ties exist in the sport, which determines if an additional 0.5 needs to be added to the margin of victory
+if (sum(scores$tie) > 0) {
+    tie_adj = 0.5 
+} else {
+    tie_adj = 0
+}
+
+# Iterate through all games in the sport's history up to season being simulated
+for(i in 1:nrow(pre_season)) {
+    # Find indices corresponding to home and away teams for current game
+    home_index = which(team_info$team == pre_season$home_team[i])
+    away_index = which(team_info$team == pre_season$away_team[i])
+    
+    # Find home and away team Elo ratings
+    home_elo = team_info$rating[home_index]
+    away_elo = team_info$rating[away_index]
+    
+    # Calculate home team win probability
+    win_prob = 1 / (10^((away_elo - (home_elo + hfa*pre_season$location[i]))/400) + 1)
+    
+    # Calculate actual margin of victory - must be positive
+    score_diff = abs(pre_season$home_score[i] - pre_season$away_score[i])
+    
+    # Determine home team result
+    if(pre_season$home_score[i] > pre_season$away_score[i]) { 
+    home_result = 1  # Home team wins
+    } else if(pre_season$home_score[i] < pre_season$away_score[i]) { 
+    home_result = 0  # Home team loses
+    } else { 
+    home_result = 0.5  # Tie
+    }
+    
+    # Calculate amount each team's Elo rating is adjusted by
+    home_elo_adjustment = weight * log(score_diff + 1 + tie_adj) * (home_result - win_prob)
+
+  
+    # Adjust Elo ratings - add point to winner and subtract points from loser
+    team_info$rating[home_index] = team_info$rating[home_index] + home_elo_adjustment
+    team_info$rating[away_index] = team_info$rating[away_index] - home_elo_adjustment
+    
+    # Adjust Elo ratings at end of season to regress 1/3 of the way towards 1500
+    if(i < nrow(scores) && scores$season[i+1] > scores$season[i]) {
+        for(j in 1:nrow(team_info)) {
+            if(scores$season[i] >= team_info$inaugural_season[j]) {
+                team_info$rating[j] = team_info$rating[j] - (team_info$rating[j] - 1500)/3
+                }
+        }
+    
+        # Identify all teams that existed at beginning of following season
+        existing_teams = team_info[which(team_info$inaugural_season <= (scores$season[i] + 1)),]
+    
+        # Calculate amount each team's Elo rating must be adjusted by to make mean 1500
+        expansion_adjustment = -1*(mean(existing_teams$rating) - 1500)
+    
+        # Perform expansion adjustment on teams that existed at beginning of following season
+        for(j in 1:nrow(team_info)) {
+            if((scores$season[i] + 1) >= team_info$inaugural_season[j]) {
+                team_info$rating[j] = team_info$rating[j] + expansion_adjustment
+            }
+        }
+    }
+}
+
+
+
+
+
+# Determine number of times to simulate the season
+iterations = 1000
+
+# Create data frame to hold Elo ratings, actual win totals, and simulation results
+results = data.frame(matrix(0, ncol = 6, nrow = nrow(team_info)))
+colnames(results) = c("team", "starting_elo", "ending_elo", "actual_wins", "average_wins", "division_titles")
+results$team = team_info$team
+
+# Create data frame to hold number of wins by each team in each iteration
+win_totals = data.frame(matrix(0, ncol = nrow(team_info), nrow = iterations))
+colnames(win_totals) = team_info$team
+
+# Simulate the season the given number of times
+for(i in 1:iterations) {
+    if(i %% 1000 == 0) {print(i)}
+    season_stats2 = team_info[,which(colnames(team_info) != "inaugural_season")]
+    season_stats2$wins = 0
+    season_stats2$rand = runif(nrow(team_info))
+    
+    # Simulate each game in current season
+    for(j in 1:nrow(season_schedule)) {
+        # Find indices corresponding to home and away teams for current game
+        home_index = which(season_stats2$team == season_schedule$home_team[j])
+        away_index = which(season_stats2$team == season_schedule$away_team[j])
+        
+        # Find home and away team Elo ratings
+        home_elo = season_stats2$rating[home_index]
+        away_elo = season_stats2$rating[away_index]
+        
+        # Calculate home team win probability
+        win_prob = 1 / (10^((away_elo - (home_elo + hfa*season_schedule$location[j]))/400) + 1)
+        u = runif(1)  # Generate a random number used to determine the winner of the game
+        
+        # Determine which team wins the simulated game and increment their win total by 1
+        if(u < win_prob) {
+            season_stats2$wins[home_index] = season_stats2$wins[home_index] + 1
+        } else {
+            season_stats2$wins[away_index] = season_stats2$wins[away_index] + 1
+        }
+    
+        # Calculate actual margin of victory - must be positive
+        score_diff = abs(season_schedule$home_score[j] - season_schedule$away_score[j])
+        
+        # Determine home team result
+        if(season_schedule$home_score[j] > season_schedule$away_score[j]) { 
+          home_result = 1  # Home team wins
+        } else if(season_schedule$home_score[j] < season_schedule$away_score[j]) { 
+          home_result = 0  # Home team loses
+        } else { 
+          home_result = 0.5  # Tie
+        }
+        
+        # Calculate amount each team's Elo rating is adjusted by
+        home_elo_adjustment = weight * log(score_diff + 1 + tie_adj) * (home_result - win_prob)
+        
+        # Adjust Elo ratings after game has been simulated to get team's new strength
+        season_stats2$rating[home_index] = season_stats2$rating[home_index] + home_elo_adjustment
+        season_stats2$rating[away_index] = season_stats2$rating[away_index] - home_elo_adjustment
+    
+        # Track season wins
+        if(i == 1) {
+            if(season_schedule$home_score[j] > season_schedule$away_score[j]) {
+                results$actual_wins[home_index] = results$actual_wins[home_index] + 1
+            } else if(season_schedule$home_score[j] < season_schedule$away_score[j]) {
+                results$actual_wins[away_index] = results$actual_wins[away_index] + 1
+            } else {
+                results$actual_wins[home_index] = results$actual_wins[home_index] + 0.5
+                results$actual_wins[away_index] = results$actual_wins[away_index] + 0.5
+            }
+        }
+    }
+
+    # Define data frame that contains division winners
+    division_winners = data.frame(matrix(ncol = 6, nrow = 0))
+    colnames(division_winners) = c("team", "conference", "division", "rating", "wins", "rand")
+  
+    # For each division
+    for(div in divisions) {
+        div_standings = season_stats2[which(season_stats2$division == div),]  # Identify all teams in current division
+        div_standings = div_standings[order(-div_standings$wins, -div_standings$rand),]  # Sort division by wins and random number
+        division_winners = rbind(division_winners, div_standings[1,])  # Add division winner to 'division_winners' data frame
+    }
+  
+    # Save end of season win totals (from column 5 of season_stats) for each iteration in the win_totals data frame
+    win_totals[i,] = t(season_stats2[5])
+    
+    # Add number of wins for each team during this iteration to sum
+    results$average_wins = results$average_wins + season_stats2$wins
+  
+    # Increment the number of division titles for each division winner by 1
+    for(team in division_winners$team) {
+        index = which(season_stats2$team == team)  # Index of division winner
+        results$division_titles[index] = results$division_titles[index] + 1  # Increment division titles
+    }
+}
+ 
+# Calculate average number of wins across all iterations
+results$starting_elo = team_info$rating
+results$ending_elo = season_stats2$rating
+results$average_wins = results$average_wins/iterations
+results$division_titles = results$division_titles/iterations
+
+print(results)
+
+results2 <- results %>%
+  select(team, starting_elo, ending_elo) %>%
+  mutate(Difference = ending_elo - starting_elo) %>%
+  filter(starting_elo != ending_elo) %>%
+  arrange(desc(ending_elo))
+
+results3 <- results %>%
+  select(team, actual_wins, average_wins, division_titles) %>%
+  filter(average_wins != division_titles)
+  
+
+kable(list(results2[1:15,],results2[16:30,]), col.names = c("Team", "Starting Elo", "Ending Elo", "Change"), digits = 3, align = 'lccc')
+
+kable(list(results3[1:15,],results3[16:30,]), col.names = c("Team", "Actual Wins", "Average Wins", "Division Titles"), digits = 3, align = 'lccc')
+
+results3 %>%
+  ggplot(aes(x = actual_wins, y = average_wins)) +
+  geom_point(color = 'red') +
+  labs(title = 'Actual vs Simulated Wins', x = "Actual Wins", y = "Simulated Wins") +
+  stat_cor(method = 'pearson') 
+
+results3$difference <- results3$actual_wins - results3$average_wins
+
+
+```
+
+Elo for One Team
+```{r}
+# Select team and season to follow over a specified period of time
+team = "Boston Celtics"
+first_season = 2015
+last_season = 2015
+
+elos <- read.table('nba_initial_elos.csv', header = T, sep = ",")
+
+
+# Input the optimal k factors (weight) and home field advantage
+weight = 8.5
+hfa = 77.47
+
+
+# Identify if ties exist in the sport, which determines if an additional 0.5 needs to be added to the margin of victory
+if (sum(scores$tie) > 0) {
+    tie_adj = 0.5 
+} else {
+    tie_adj = 0
+}
+
+# Create data frame to store information for team specified above
+team_results = data.frame(matrix(ncol = 10, nrow = 0))
+colnames(team_results) = c("opponent", "pregame_elo", "opponent_pregame_elo", "win_probability", "result", "team_score", "opponent_score", "elo_adjustment", "postgame_elo", "opponent_postgame_elo")
+
+# Iterate through all games in the sport's history
+for(i in 1:nrow(scores)) {
+    # Find indices corresponding to home and away teams for current game
+    home_index = which(elos$team == scores$home_team[i])
+    away_index = which(elos$team == scores$away_team[i])
+    
+    
+    # Find home and away team Elo ratings
+    home_elo = elos$rating[home_index]
+    away_elo = elos$rating[away_index]
+    
+    
+    # Calculate home team win probability
+    win_prob = 1 / (10^((away_elo - (home_elo + hfa*scores$location[i]))/400) + 1)
+    
+    
+    # Calculate actual margin of victory - must be positive
+    score_diff = abs(scores$home_score[i] - scores$away_score[i])   
+    
+    
+    # Determine home team result
+    if(scores$home_score[i] > scores$away_score[i]) { 
+        home_result = 1  # Home team wins
+    } else if(scores$home_score[i] < scores$away_score[i]) { 
+        home_result = 0  # Home team loses
+    } else { 
+        home_result = 0.5  # Tie
+    }
+  
+    
+    # Calculate amount each team's Elo rating is adjusted by
+    home_elo_adjustment = weight * log(score_diff + 1 + tie_adj) * (home_result - win_prob)
+    
+    
+    # Adjust Elo ratings - add point to winner and subtract points from loser
+    elos$rating[home_index] = elos$rating[home_index] + home_elo_adjustment
+    elos$rating[away_index] = elos$rating[away_index] - home_elo_adjustment
+
+    
+    # Add game information to team result data frame for each team game of the team specified above if team and season both match
+    if(scores$season[i] >= first_season & scores$season[i] <= last_season & (scores$home_team[i] == team | scores$away_team[i] == team)) {
+        if(scores$home_team[i] == team) {  # If specified team was at home
+            team_results[nrow(team_results) + 1,] = c(scores$away_team[i], elos$rating[home_index] - home_elo_adjustment, elos$rating[away_index] + home_elo_adjustment, win_prob, home_result, scores$home_score[i], scores$away_score[i], home_elo_adjustment, elos$rating[home_index], elos$rating[away_index])
+        } else {  # If specified team was away
+            team_results[nrow(team_results) + 1,] = c(scores$home_team[i], elos$rating[away_index] + home_elo_adjustment, elos$rating[home_index] - home_elo_adjustment, 1-win_prob, 1-home_result, scores$away_score[i], scores$home_score[i], -1*home_elo_adjustment, elos$rating[away_index], elos$rating[home_index])
+        }
+    }
+    
+    
+    # Adjust Elo ratings at end of season to regress 1/3 of the way towards 1500
+    if(i < nrow(scores) && scores$season[i+1] > scores$season[i]) {  # New season
+        for(j in 1:nrow(elos)) {  # For each team
+            if(scores$season[i] >= elos$inaugural_season[j]) {  # Check if team existed
+                # Move each team's Elo rating back towards 1500 by 1/3 of the difference
+                elos$rating[j] = elos$rating[j] - (elos$rating[j] - 1500)/3
+            }
+        }
+        
+        
+        # Identify all teams that existed at beginning of following season
+        existing_teams = elos[which(elos$inaugural_season <= (scores$season[i] + 1)),]
+        
+        
+        # Calculate amount each team's Elo rating must be adjusted by to make mean 1500
+        expansion_adjustment = -1*(mean(existing_teams$rating) - 1500)
+        
+        
+        # Perform expansion adjustment on teams that existed at beginning of following season
+        for(j in 1:nrow(elos)) {  # For each team
+            if((scores$season[i] + 1) >= elos$inaugural_season[j]) {  # Check if team existed
+                elos$rating[j] = elos$rating[j] + expansion_adjustment  # Update ratings if so
+            }
+        }
+    }
+}
+
+# Create plot of postgame Elo ratings
+if (first_season == last_season) {
+    team_name = paste(first_season, team)
+} else {
+    team_name = paste(paste(first_season, last_season, sep = "-"), team)
+}
+
+plot(team_results$postgame_elo, type = "l", ylab = "Elo Rating", xlab = "Game Number", main = "2015-2016 Boston Celtics Postgame Elos" )
+abline(h = 1500)
+
+
+
+print(elos)
+```
+
+GSW Analysis
+```{r}
+win_totals %>%
+  ggplot(aes(x = `Golden State Warriors`)) + 
+  geom_histogram(color = 'black', fill = 'gold', bins = 21) +
+  geom_vline(xintercept = mean(win_totals$`Golden State Warriors`), color = 'blue', linewidth = 2) +
+  labs(title = 'Distribution of GSW Wins from Simulation', x = "Number of Wins", y = "Count") +
+  geom_text(aes(label = "Mean Wins: 67.19",x = 60, y = 100), color = 'blue')
+```
+
+76ers Analysis
+```{r}
+win_totals %>%
+  ggplot(aes(x = `Philadelphia 76ers`)) + 
+  geom_histogram(color = 'white', fill = 'blue', bins = 24, alpha = 0.8) +
+  geom_vline(xintercept = mean(win_totals$`Philadelphia 76ers`), color = 'red', linewidth = 2) +
+  labs(title = 'Distribution of 76ers Wins from Simulation', x = "Number of Wins", y = "Count") +
+  geom_text(aes(label = "Mean Wins: 16.91",x = 7.5, y = 100), color = 'red')
+
+```
+
+
+
+
